@@ -38,7 +38,10 @@ import { generateHashedPassword } from "./utils";
 // https://authjs.dev/reference/adapter/drizzle
 
 // biome-ignore lint: Forbidden non-null assertion.
-const client = postgres(process.env.POSTGRES_URL!);
+const client = postgres(process.env.POSTGRES_URL!, {
+  ssl: "require",
+  prepare: false, // Required for Supabase connection pooler (Transaction mode)
+});
 const db = drizzle(client);
 
 export async function getUser(email: string): Promise<User[]> {

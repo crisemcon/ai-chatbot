@@ -8,9 +8,9 @@ config({
 });
 
 const runMigrate = async () => {
-  // Skip migrations during Vercel build - they should run at runtime
-  if (process.env.VERCEL === "1") {
-    console.log("⏭️  Skipping migrations during Vercel build (will run at runtime)");
+  // Skip migrations during CI/build - run manually or via deploy hook
+  if (process.env.CI === "true" || process.env.CI === "1") {
+    console.log("⏭️  Skipping migrations during CI build");
     process.exit(0);
   }
 
@@ -19,10 +19,11 @@ const runMigrate = async () => {
     process.exit(0);
   }
 
-  // Configure postgres connection with timeout
+  // Configure postgres connection with SSL for Supabase
   const connection = postgres(process.env.POSTGRES_URL, {
     max: 1,
     connect_timeout: 10,
+    ssl: "require",
   });
 
   const db = drizzle(connection);
