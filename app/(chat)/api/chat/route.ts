@@ -167,12 +167,21 @@ export async function POST(request: Request) {
           });
         }
 
-        const isReasoningModel =
-          selectedChatModel.includes("reasoning") ||
-          selectedChatModel.includes("thinking");
+        // GPT-5 reasoning models (with reasoning summaries)
+        const isGpt5ReasoningModel =
+          selectedChatModel === "gpt-5-mini-reasoning";
+        // OpenAI o-series reasoning models: o1, o3, o4-mini, etc.
+        const isOSeriesReasoningModel =
+          selectedChatModel.startsWith("o1") ||
+          selectedChatModel.startsWith("o3") ||
+          selectedChatModel.startsWith("o4");
+        const isReasoningModel = isGpt5ReasoningModel || isOSeriesReasoningModel;
+
+        // For GPT-5 reasoning, use the base model with reasoning summaries
+        const modelId = isGpt5ReasoningModel ? "gpt-5-mini" : selectedChatModel;
 
         const result = streamText({
-          model: getLanguageModel(selectedChatModel),
+          model: getLanguageModel(modelId),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: await convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
@@ -187,13 +196,20 @@ export async function POST(request: Request) {
           experimental_transform: isReasoningModel
             ? undefined
             : smoothStream({ chunking: "word" }),
-          providerOptions: isReasoningModel
+          providerOptions: isGpt5ReasoningModel
             ? {
-                anthropic: {
-                  thinking: { type: "enabled", budgetTokens: 10_000 },
+                openai: {
+                  reasoningEffort: "medium",
+                  reasoningSummary: "auto",
                 },
               }
-            : undefined,
+            : isOSeriesReasoningModel
+              ? {
+                  openai: {
+                    reasoningEffort: "medium",
+                  },
+                }
+              : undefined,
           tools: {
             getWeather,
             createDocument: createDocument({ session, dataStream }),

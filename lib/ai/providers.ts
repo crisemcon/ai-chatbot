@@ -1,12 +1,6 @@
-import { gateway } from "@ai-sdk/gateway";
-import {
-  customProvider,
-  extractReasoningMiddleware,
-  wrapLanguageModel,
-} from "ai";
+import { openai } from "@ai-sdk/openai";
+import { customProvider } from "ai";
 import { isTestEnvironment } from "../constants";
-
-const THINKING_SUFFIX_REGEX = /-thinking$/;
 
 export const myProvider = isTestEnvironment
   ? (() => {
@@ -32,31 +26,19 @@ export function getLanguageModel(modelId: string) {
     return myProvider.languageModel(modelId);
   }
 
-  const isReasoningModel =
-    modelId.includes("reasoning") || modelId.endsWith("-thinking");
-
-  if (isReasoningModel) {
-    const gatewayModelId = modelId.replace(THINKING_SUFFIX_REGEX, "");
-
-    return wrapLanguageModel({
-      model: gateway.languageModel(gatewayModelId),
-      middleware: extractReasoningMiddleware({ tagName: "thinking" }),
-    });
-  }
-
-  return gateway.languageModel(modelId);
+  return openai(modelId);
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return gateway.languageModel("anthropic/claude-haiku-4.5");
+  return openai("gpt-5-mini");
 }
 
 export function getArtifactModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("artifact-model");
   }
-  return gateway.languageModel("anthropic/claude-haiku-4.5");
+  return openai("gpt-5-mini");
 }
